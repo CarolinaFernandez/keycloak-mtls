@@ -54,7 +54,7 @@ You will be prompted for the matching certificate (the client certificate loaded
 
 Run the following to obtain the token:
 
-````bash
+```bash
 ./keycloak-token-get.sh
 ```
 
