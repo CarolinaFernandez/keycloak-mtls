@@ -1,8 +1,8 @@
 # Mutual TLS in Keycloak
 
-One-click deployment and configuration for Keycloak to work with mutual TLS (mTLS), both to:
-* Authenticate users from the browser.
-* Authenticate clients without a browser.
+One-click deployment and configuration for Keycloak to provide two working methods based on mutual TLS (mTLS):
+1. Authenticate users from the browser.
+1. Authenticate clients without a browser.
 
 This will deploy:
 * Keycloak in production mode, loading pregenerated realm configuration.
@@ -67,17 +67,6 @@ You can use it on future calls to retrieve information or access other features.
 The following configuration was used and exported in the `keycloak/export/realm-export.json` file, which is imported to bootstrap all process.
 The exported data from the user was added manually, following instructions from https://stackoverflow.com/a/76414472.
 
-**Client** (required by both X509 client and browser access)
-Create a new client with the following information:
-- Settings
-  - Client ID = keycloak-client
-  - Client authentication = On
-  - Authentication flow = { Standard flow, Direct access grants, Service accounts role, OAuth 2.0 Device AUthorization Grant }
-- Credentials
-  - Client Authenticator = X509 Certificate
-  - Allow regex pattern comparison = On
-  - Subject DN = `(.*?)CN=(.*)client(.*).server.department.company.ct(.*?)(?:$)`
-
 **Authentication** (required by X509 browser access)
 Create a new authentication flow with the following information:
 - General settings
@@ -96,3 +85,16 @@ Then bind it as the default "browser flow"
 **User** (required by X509 browser access)
 - Username = keycloak-user
 - Email = client.server@department.company.ct
+
+**Client** (required by X509 client)
+Create a new client with the following information:
+- Settings
+  - Client ID = keycloak-client
+  - Client authentication = On
+  - Authentication flow = { Standard flow, Direct access grants, Service accounts role, OAuth 2.0 Device AUthorization Grant }
+- Credentials
+  - Client Authenticator = X509 Certificate
+  - Allow regex pattern comparison = On
+  - Subject DN = `(.*?)CN=(.*)client(.*).server.department.company.ct(.*?)(?:$)`
+
+Note that the first working method ("Authenticate users from the browser") requires the creation of the authentication flow and the user, whereas the second working method ("Authenticate clients without a browser") requires creating the client.
