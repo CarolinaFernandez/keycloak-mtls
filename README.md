@@ -52,10 +52,11 @@ You will be prompted for the matching certificate (the client certificate loaded
 
 ### Authentication as a non-interacting user (client) from the terminal
 
-Run the following to obtain the token:
+Run any of the following to obtain the token:
 
 ```bash
 ./keycloak-token-get.sh
+./keycloak-token-get.py
 ```
 
 You can use it on future calls to retrieve information or access other features.
