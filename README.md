@@ -68,6 +68,13 @@ You can use it on future calls to retrieve information or access other features.
 The following configuration was used and exported in the `keycloak/export/realm-export.json` file, which is imported to bootstrap all process.
 The exported data from the user was added manually, following instructions from https://stackoverflow.com/a/76414472.
 
+**Realm** (required by X509 client and X509 browser access)
+Create a new realm with the following information:
+- General settings
+  - Name = x509
+- Login
+  - Require SSL = All requests
+
 **Authentication** (required by X509 browser access)
 Create a new authentication flow with the following information:
 - General settings
@@ -84,6 +91,7 @@ Create a new authentication flow with the following information:
 Then bind it as the default "browser flow"
 
 **User** (required by X509 browser access)
+Create a new user with the following information:
 - Username = keycloak-user
 - Email = client.server@department.company.ct
 
