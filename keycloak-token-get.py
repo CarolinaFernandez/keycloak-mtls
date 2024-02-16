@@ -2,6 +2,7 @@
 
 # Disable warnings due to the lack of validation of the TLS certificate
 import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 client_cert_path = "./client.crt"
@@ -32,13 +33,15 @@ keycloak_openid = KeycloakOpenID(
 keycloak_openid.connection._s.cert = (client_cert_path, client_key_path)
 # Payload obtained from src/keycloak/keycloak_openid.py
 params_path = {"realm-name": realm_name}
-#payload = {
+# payload = {
 #    "client_id": keycloak_openid.client_id,
 #    "grant_type": "client_credentials",
-#}
+# }
 
 try:
-    data_raw = keycloak_openid.connection.raw_post(URL_TOKEN.format(**params_path), data=payload)
+    data_raw = keycloak_openid.connection.raw_post(
+        URL_TOKEN.format(**params_path), data=payload
+    )
     token = data_raw.json()
     print(f"Token: {token}")
 except Exception as e:
