@@ -3,11 +3,16 @@
 One-click deployment and configuration for Keycloak to provide two working methods based on mutual TLS (mTLS):
 1. Authenticate users from the browser.
 1. Authenticate clients without a browser.
-1. Provide (by default) a reverse proxy mode.
+
+Two deployment modes are provided:
+1. Direct access to Keycloak (i.e. where clients will directly authenticate against Keycloak).
+1. Reverse proxy mode (i.e. where clients will traverse one or more intermediate nodes like e.g. API gateways to authenticate against Keycloak).
 
 This will deploy:
 * Keycloak in production mode, loading pregenerated realm configuration.
 * Postgres bound to Keycloak as persistence layer.
+* Keycloak proxy using NGINX (if the "proxy" mode is selected).
+  * *Note*: this is a simple, limited configuration that showcases the reverse proxy passing the escaped certificate header.
 
 ## Configuration and deployment
 
@@ -18,31 +23,49 @@ First, generate the certificates.
 ./certificates-create.sh
 ```
 
-All files will be located under `x509`.
+All files will be located under the "x509" folder.
+**Note**: if wishing to authenticate from the browser, you should import the "./x509/client.p12" file into your certificate store through your selected browser.
 
-Now, decide whether you wish to keep the reverse proxy mode enabled (default) or not.
-To disable it, go to "docker-compose.yaml" and comment the lines with `PROXY_ADDRESS_FORWARDING` and `KC_SPI_X509CERT_LOOKUP*`:
-
-```bash
-## mTLS setup to provide client's certificate through header
-#- PROXY_ADDRESS_FORWARDING=true
-#- KC_SPI_X509CERT_LOOKUP_PROVIDER=nginx
-##- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=ssl-client-cert
-#- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=X-Client-Cert
-```
-
-Finally, run the following to deploy the stack:
+Now, decide whether you wish to keep the direct or reverse proxy deployment modes and run the main script to deploy the stack:
 
 ```bash
-docker-compose -f docker-compose.yaml up -d
+./run.sh -h
+
+Allowed parameters:
+    (-d|--deploy) (direct|proxy)
+    (-u|--undeploy) (direct|proxy)
+    (-t|--test) (direct|proxy)
+
+# Example 1: direct mode
+./run.sh -d direct
+
+# Example 2: proxy mode
+./run.sh -d proxy
 ```
+
+Now you can point to the Keycloak instance. A couple of notes on that, depending on the mode:
+* Direct mode: you will be able to directly login with the client certificate previously imported from the web browser.
+  * Access https://server.department.company.ct:8443/realms/x509/account/ and click on "Sign in".
+* Proxy mode: you will not be able to use the certificate from the web browser with this configuration. However, you can see in the first redirection call from Nginx to Keycloak that the escaped certificate (extracted from the certificate store) is transmitted in the appropriate header(s).
+  * Access https://server.department.company.ct and notice the redirection (and two certificate prompt requests, the first from Nginx and the second from Keycloak).
 
 ## Undeployment
 
 To stop the stack you can execute:
 
 ```bash
-docker-compose -f docker-compose.yaml down
+./run.sh -h
+
+Allowed parameters:
+    (-d|--deploy) (direct|proxy)
+    (-u|--undeploy) (direct|proxy)
+    (-t|--test) (direct|proxy)
+
+# Example 1: direct mode
+./run.sh -u direct
+
+# Example 2: proxy mode
+./run.sh -u proxy
 ```
 
 And to remove the Docker volume for Postgres, you may enact the following command (names might vary slightly on your environment):
@@ -64,29 +87,34 @@ You will be prompted for the matching certificate (the client certificate loaded
 
 ### Authentication as a non-interacting user (client) from the terminal
 
-Depending on the mode you run Keycloak by (set through env vars in docker-compose.yaml), run some of the following to obtain the token:
+Once Keyloak server has finished loading, select one option or another depending on the mode you run Keycloak:
 
 ```bash
-# Option A: proxy is enabled (default)
-## NOTE: one test may fail if `python-keycloak` library is not available via PIP (tested with version="3.7.0").
-python3 keycloak-token-get-proxy-enabled.py
+./run.sh -h
 
-# Option B: proxy is not enabled
-./keycloak-token-get-proxy-disabled.sh
-## NOTE: one test may fail if `python-keycloak` library is not available via PIP (tested with version="3.7.0").
-python3 keycloak-token-get-proxy-disabled.py 
+Allowed parameters:
+    (-d|--deploy) (direct|proxy)
+    (-u|--undeploy) (direct|proxy)
+    (-t|--test) (direct|proxy)
+
+# Example 1: direct mode
+./run.sh -t direct
+
+# Example 2: proxy mode
+./run.sh -t proxy
 ```
 
+The code is provided as unit tests in the files "keycloak-token-get-direct.py" and "keycloak-token-get-proxy.py".
 You can now use the generated token to retrieve information from protected endpoints.
 
 ## Notes
 
-### Configuration
+### General resource configuration
 
-The following configuration was used and exported in the `keycloak/export/realm-export.json` file, which is imported to bootstrap all process.
+The following configuration was used and exported in the "keycloak/export/realm-export.json" file, which is imported to bootstrap all process.
 The exported data from the user was added manually, following instructions from https://stackoverflow.com/a/76414472.
 
-**Note**: alternatively, the resources can be automatically created using the `keycloak-resources-create.py` script (which requires both python-keycloak and requests commands).
+**Note**: alternatively, the resources can be automatically created using the "keycloak-resources-create.py" script (which requires both python-keycloak and requests commands).
 
 **Realm** (required by X509 client and X509 browser access)
 Create a new realm with the following information:
@@ -127,3 +155,7 @@ Create a new client with the following information:
   - Subject DN = `(.*?)CN=(.*)client(.*).server.department.company.ct(.*?)(?:$)`
 
 Note that the first working method ("Authenticate users from the browser") requires the creation of the authentication flow and the user, whereas the second working method ("Authenticate clients without a browser") requires creating the client.
+
+### NGINX reverse proxy
+
+Note that...

@@ -1,0 +1,106 @@
+version: "3.8"
+services:
+  keycloak_proxy:
+   build:
+     context: ./nginx
+     dockerfile: Dockerfile
+   container_name: keycloak-proxy
+   hostname: keycloak_proxy
+   restart: unless-stopped
+   ports:
+     - "127.0.0.1:443:443"
+     - "127.0.0.1:50000:8000"
+   healthcheck:
+    test: curl -fk https://keycloak:8000
+    interval: 60s
+    timeout: 10s
+    retries: 5
+    start_period: 40s
+   networks:
+     - keycloak-network
+  keycloak_db:
+      image: postgres:14.5
+      container_name: keycloak-db
+      restart: unless-stopped
+      volumes:
+        - keycloak-db-data:/var/lib/postgresql/data
+      environment:
+        - POSTGRES_DB=keycloak
+        - POSTGRES_USER=admin
+        - POSTGRES_PASSWORD=admin
+      ports:
+        - "5432:5432"
+      healthcheck:
+        test: [ "CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}" ]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+      networks:
+        - postgres-db-network
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.6
+    container_name: keycloak
+    hostname: keycloak
+    depends_on:
+      - keycloak_db
+    restart: unless-stopped
+    #command: start-dev --import-realm
+    command: start --import-realm
+    # command: start
+    environment:
+      # https://keycloak.discourse.group/t/getting-keycloak-to-use-postgres-within-docker-compose/23882/2
+      - KC_DB=postgres
+      - KC_DB_SCHEMA=public
+      - KC_DB_URL_DATABASE=keycloak
+      - KC_DB_URL_HOST=keycloak-db
+      - KC_DB_URL_PORT=5432
+      - KC_DB_USERNAME=admin
+      - KC_DB_PASSWORD=admin
+      # https://github.com/keycloak/keycloak/issues/16069
+      # Note: can be ignored in dev ("start-dev") but enforced in prod ("start")
+      # Warning: if not set properly, Keycloak will hang and not allow operation
+      # Ref: https://www.keycloak.org/server/configuration#_starting_keycloak_in_production_mode
+      - KC_HOSTNAME=server.department.company.ct
+      - KC_HTTPS_CERTIFICATE_FILE=/etc/x509/https/server.crt
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/x509/https/server.key
+      - KC_HTTPS_CLIENT_AUTH=request
+      - KC_HTTPS_KEY_STORE_FILE=/etc/x509/https/server.keystore
+      - KC_HTTPS_KEY_STORE_PASSWORD=changeit
+      - KC_HTTPS_KEY_STORE_TYPE=PKCS12
+      - KC_HTTPS_TRUST_STORE_FILE=/etc/x509/https/server.truststore
+      - KC_HTTPS_TRUST_STORE_PASSWORD=changeit
+      - KC_HTTPS_TRUST_STORE_TYPE=JKS
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - X509_CA_BUNDLE=/etc/x509/https/ca.crt
+      # mTLS setup to provide client's certificate through header
+      - PROXY_ADDRESS_FORWARDING=true
+      - KC_SPI_X509CERT_LOOKUP_PROVIDER=nginx
+      #- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=ssl-client-cert
+      - KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=X-Client-Cert
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    healthcheck:
+      test: (timeout 10s bash -c ":> /dev/tcp/keycloak-db/5432" && timeout 10s bash -c ":> /dev/tcp/keycloak/8080" && timeout 10s bash -c ":> /dev/tcp/keycloak/8443") || exit 1
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    volumes:
+      - ./x509:/etc/x509/https
+      # Import realm (previously exported)
+      ## Ref: https://www.keycloak.org/server/containers#_importing_a_realm_on_startup
+      ## Ref: https://medium.com/@ramanamuttana/export-and-import-of-realm-from-keycloak-131deb118b72
+      - ./keycloak/export:/opt/keycloak/data/import
+    networks:
+      - keycloak-network
+      - postgres-db-network
+volumes:
+  keycloak-db-data:
+    driver: local
+networks:
+  postgres-db-network:
+    driver: bridge
+  keycloak-network:
+    driver: bridge
