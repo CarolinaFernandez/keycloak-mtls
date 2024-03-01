@@ -28,6 +28,7 @@ services:
     restart: unless-stopped
     #command: start-dev --import-realm
     command: start --import-realm
+    # command: start
     environment:
       # https://keycloak.discourse.group/t/getting-keycloak-to-use-postgres-within-docker-compose/23882/2
       - KC_DB=postgres
@@ -53,8 +54,12 @@ services:
       - KC_HTTPS_TRUST_STORE_TYPE=JKS
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - PROXY_ADDRESS_FORWARDING=false
       - X509_CA_BUNDLE=/etc/x509/https/ca.crt
+      # mTLS setup to provide client's certificate through header
+      - PROXY_ADDRESS_FORWARDING=true
+      - KC_SPI_X509CERT_LOOKUP_PROVIDER=nginx
+      #- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=ssl-client-cert
+      - KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=X-Client-Cert
     ports:
       - "8080:8080"
       - "8443:8443"

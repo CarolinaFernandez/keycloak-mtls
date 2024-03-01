@@ -3,6 +3,7 @@
 One-click deployment and configuration for Keycloak to provide two working methods based on mutual TLS (mTLS):
 1. Authenticate users from the browser.
 1. Authenticate clients without a browser.
+1. Provide (by default) a reverse proxy mode.
 
 This will deploy:
 * Keycloak in production mode, loading pregenerated realm configuration.
@@ -19,7 +20,18 @@ First, generate the certificates.
 
 All files will be located under `x509`.
 
-Then, run the following to deploy the stack:
+Now, decide whether you wish to keep the reverse proxy mode enabled (default) or not.
+To disable it, go to "docker-compose.yaml" and comment the lines with `PROXY_ADDRESS_FORWARDING` and `KC_SPI_X509CERT_LOOKUP*`:
+
+```bash
+## mTLS setup to provide client's certificate through header
+#- PROXY_ADDRESS_FORWARDING=true
+#- KC_SPI_X509CERT_LOOKUP_PROVIDER=nginx
+##- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=ssl-client-cert
+#- KC_SPI_X509CERT_LOOKUP_NGINX_SSL_CLIENT_CERT=X-Client-Cert
+```
+
+Finally, run the following to deploy the stack:
 
 ```bash
 docker-compose -f docker-compose.yaml up -d
@@ -52,16 +64,20 @@ You will be prompted for the matching certificate (the client certificate loaded
 
 ### Authentication as a non-interacting user (client) from the terminal
 
-Run any of the following to obtain the token:
+Depending on the mode you run Keycloak by (set through env vars in docker-compose.yaml), run some of the following to obtain the token:
 
 ```bash
-./keycloak-token-get.sh
+# Option A: proxy is enabled (default)
+## NOTE: one test may fail if `python-keycloak` library is not available via PIP (tested with version="3.7.0").
+python3 keycloak-token-get-proxy-enabled.py
 
-# NOTE: requires installing the `python-keycloak` library via PIP (tested with version="3.7.0").
-./keycloak-token-get.py
+# Option B: proxy is not enabled
+./keycloak-token-get-proxy-disabled.sh
+## NOTE: one test may fail if `python-keycloak` library is not available via PIP (tested with version="3.7.0").
+python3 keycloak-token-get-proxy-disabled.py 
 ```
 
-You can use it on future calls to retrieve information or access other features.
+You can now use the generated token to retrieve information from protected endpoints.
 
 ## Notes
 
