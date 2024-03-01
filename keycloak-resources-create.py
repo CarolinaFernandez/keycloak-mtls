@@ -17,7 +17,7 @@ username = "admin"
 password = "admin"
 realm_name_default = "master"
 realm_name_new = "x509-test"
-client_id = "so-client-x509-flow_clients-credentials"
+client_id = "keycloak-client"
 account_url = f"{keycloak_url}/realms/{realm_name_new}/account/"
 # Certificates and token retrieval
 client_cert_path = "./x509/client.crt"

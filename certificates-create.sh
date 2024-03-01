@@ -80,7 +80,7 @@ keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
 EOF
 openssl x509 -req -CA ${CA_NAME}.crt -CAkey ${CA_NAME}.key -in ${SERVER_NAME}.csr -out ${SERVER_NAME}.crt -days 365 -CAcreateserial -extfile ${SERVER_NAME}.v3.ext
 
-# User certificate (SO Client)
+# Client certificate
 openssl req -new -newkey rsa:4096 -nodes -keyout ${CLIENT_NAME}.key -out ${CLIENT_NAME}.csr -subj "/C=${CERT_DN_C}/ST=${CERT_DN_ST}/L=${CERT_DN_L}/O=${CERT_DN_O}/OU=${CERT_DN_OU}/CN=${CERT_DN_CN_CLIENT}/emailAddress=${CERT_DN_MAIL_CLIENT}"
 cat > "${CLIENT_NAME}.v3.ext" << EOF
 authorityKeyIdentifier=keyid,issuer
