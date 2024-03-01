@@ -44,7 +44,6 @@ class TestTokenExtraction(unittest.TestCase):
         }
         # Base payload
         self.payload = {
-            "realm-id": self.realm_name,
             "client_id": self.client_id,
             "grant_type": "client_credentials",
         }
