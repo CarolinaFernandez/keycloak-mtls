@@ -43,11 +43,7 @@ Allowed parameters:
 ./run.sh -d proxy
 ```
 
-Now you can point to the Keycloak instance. A couple of notes on that, depending on the mode:
-* Direct mode: you will be able to directly login with the client certificate previously imported from the web browser.
-  * Access https://server.department.company.ct:8443/realms/x509/account/ and click on "Sign in".
-* Proxy mode: you will not be able to use the certificate from the web browser with this configuration. However, you can see in the first redirection call from Nginx to Keycloak that the escaped certificate (extracted from the certificate store) is transmitted in the appropriate header(s).
-  * Access https://server.department.company.ct and notice the redirection (and two certificate prompt requests, the first from Nginx and the second from Keycloak).
+Now you can point to the Keycloak instance. Check the "Evaluation" section for details.
 
 ## Undeployment
 
@@ -78,12 +74,13 @@ docker volume rm keycloak-mtls_keycloak-db-data
 
 ### Authentication as an interacting user from a browser
 
-Load the generated `x509/client.p12` file into your browser. Click "enter" when prompted for a password (i.e. no password).
+This can be tested in the "direct" mode only.
+
+First, load the generated "x509/client.p12" file into your browser. Click "enter" when prompted for a password (i.e. no password).
 
 Then open your browser, ideally in private mode to run these tests, since the certificate wil be loaded during the session.
-Point it to the default "home URL" for e.g. the "account" client. In this local example: https://server.department.company.ct:8443/realms/x509/account/
-
-You will be prompted for the matching certificate (the client certificate loaded beforehand). Accept and you will be directed to an information review page, after which you will be logged in.
+Point it to the default "home URL" for e.g. the "account" client. In this local example: https://server.department.company.ct:8443/realms/x509/account/.
+Click on "Sign in". You will be prompted for the matching certificate (the client certificate loaded beforehand). Accept and you will be directed to an information review page, after which you will be logged in.
 
 ### Authentication as a non-interacting user (client) from the terminal
 
@@ -106,6 +103,15 @@ Allowed parameters:
 
 The code is provided as unit tests in the files "keycloak-token-get-direct.py" and "keycloak-token-get-proxy.py".
 You can now use the generated token to retrieve information from protected endpoints.
+
+### NGINX redirection in proxy mode
+
+Likely due to the simple configuration and lesser testing, in the proxy mode you will not be able to log in directly with the certificate from the web browser.
+In any case, this example intends to showcase the headers (e.g. escaped client certificate) being passed from the proxy (i.e. NGINX).
+**Note**: it is worth noting indicating that, if you have another proxy in your deployment (such as an API gateway) you can simply emulate the same header being passed along with the client's certificate properly encoded (e.g. NGINX encodes it using URL- or percent- encoding; which can be achieved in Python by using `urllib.parse.quote` on the certificate string).
+
+Point your browser to https://server.department.company.ct to notice the redirection and the headers in that first call (use the browser's developer tools for that).
+You will be prompted twice: the first from Nginx and the second from Keycloak.
 
 ## Notes
 
@@ -155,7 +161,3 @@ Create a new client with the following information:
   - Subject DN = `(.*?)CN=(.*)client(.*).server.department.company.ct(.*?)(?:$)`
 
 Note that the first working method ("Authenticate users from the browser") requires the creation of the authentication flow and the user, whereas the second working method ("Authenticate clients without a browser") requires creating the client.
-
-### NGINX reverse proxy
-
-Note that...
